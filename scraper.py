@@ -78,11 +78,14 @@ def get_publicacoes_data(edicao):
                     tipo_name, materias = _extract_node_resources(tipo)
 
                     for materia in materias:
-                        materia_name = materia.xpath('./span/a/text()')[0]
-                        materia_name = _fix_encoding(materia_name)
-                        identificador = materia.xpath('./span/a/@identificador')[0]
+                        try:
+                            materia_name = materia.xpath('./span/a/text()')[0]
+                            materia_name = _fix_encoding(materia_name)
+                            identificador = materia.xpath('./span/a/@identificador')[0]
 
-                        publicacoes.append(dict(categoria=categoria_name, orgao=orgao_name, suborgao=suborgao_name, tipo=tipo_name, materia=materia_name, identificador=identificador))
+                            publicacoes.append(dict(categoria=categoria_name, orgao=orgao_name, suborgao=suborgao_name, tipo=tipo_name, materia=materia_name, identificador=identificador))
+                        except:
+                            continue
 
     return publicacoes
 
