@@ -14,18 +14,18 @@ def insert(table, dictionary):
 
     return 'INSERT INTO {0} ({1}) VALUES ({2})'.format(table, keys, values)
 
-def select(table, dictionary, operator):
+def select(table, tuples, operator):
     if not table:
         return '';
 
     parameters = []
-    for k, v in dictionary.items():
+    for k, v in tuples:
         parameter = '[{0}] LIKE \'%{1}%\''.format(k, _format_string(v))
         parameters.append(parameter)
 
     parameters = ' {} '.format(operator).join(parameters)
     where = 'WHERE ' + parameters if parameters else ''
-
+    
     return 'SELECT * FROM {0} {1}'.format(table, where)
 
 

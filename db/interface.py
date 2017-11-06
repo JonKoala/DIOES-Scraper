@@ -21,9 +21,9 @@ class Interface:
             query = baker.insert(self.table, data)
             self.cursor.execute(query)
 
-    def select(self, operator='OR', **kwargs):
+    def select(self, *conditions, operator='OR'):
 
-        query = baker.select(self.table, kwargs, operator)
+        query = baker.select(self.table, conditions, operator)
 
         result = self.cursor.execute(query)
         entries = result.fetchall()
