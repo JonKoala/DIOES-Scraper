@@ -92,6 +92,8 @@ def get_publicacoes_data(edicao):
 def get_publicacao_body(identificador):
 
     response = _request(URL_GET_PUBLICACAO + identificador)
+    if not response.strip():
+        return ''
 
     content = etree.HTML(response)
     lines = content.xpath('//p')
