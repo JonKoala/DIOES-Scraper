@@ -117,6 +117,6 @@ def scrap(*args):
 
     #getting the body of each publicação
     for result in results:
-        result['publicacao'] = get_publicacao_body(result['identificador'])
+        result['corpo'] = get_publicacao_body(result['identificador'])
 
     return results

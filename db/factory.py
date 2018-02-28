@@ -3,11 +3,11 @@ from db.interface import Interface
 ##
 #CONSTANTS
 
-__DIOES3_PARAMETERS = '[DIOES3]', ('id', 'edicao', 'numero', 'data', 'categoria', 'orgao', 'suborgao', 'tipo', 'materia', 'identificador', 'publicacao')
-__Latest_Update_PARAMETERS = '[Latest_Update_DIOES3]', ('data', )
+__Publicacao_Original_PARAMETERS = '[Publicacao_Original]', ('id', 'edicao', 'numero', 'data', 'categoria', 'orgao', 'suborgao', 'tipo', 'materia', 'identificador', 'corpo')
+__Latest_Update_PARAMETERS = '[Latest_Update]', ('data', )
 
 _PARAMETERS = {
-    'publicacao': __DIOES3_PARAMETERS,
+    'publicacao': __Publicacao_Original_PARAMETERS,
     'latest_publicacao': __Latest_Update_PARAMETERS
 }
 

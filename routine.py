@@ -26,11 +26,7 @@ def save(dbinterface, data):
 dbi_diario = db.factory.get_interface('publicacao')
 dbi_latest_update = db.factory.get_interface('latest_publicacao')
 
-#getting latest update on the database
-startingdate = dbi_latest_update.select()[0]['data'].split('/')
-startingdate = list(reversed(startingdate))
-startingdate = [int(entry) for entry in startingdate]
-startingdate = date(*startingdate)
+startingdate = dbi_latest_update.select()[0]['data']
 
 #getting all dates between starting date and today
 delta = (date.today() - startingdate).days
