@@ -1,42 +1,61 @@
-from datetime import date, timedelta
-import calendar
-
-from appconfig import settings
-import db
 import scraper
+import inout
+from db import Dbinterface
+from db.models import Publicacao_Original
+
+import argparse
+import calendar
+from datetime import date, timedelta
 
 
 ##
-#UTILS
+# Command line arguments
+
+parser = argparse.ArgumentParser()
+parser.add_argument('year', type=int, help='Year to scrap')
+parser.add_argument('month', type=int, help='Month to scrap')
+
+year = parser.parse_args().year
+month = parser.parse_args().month
+
+
+##
+# Utils
 
 def get_dates(year, month):
     num_days = calendar.monthrange(year, month)[1]
-    days = ['-'.join([str(year), str(month), str(day)]) for day in range(1, num_days+1)]
-
-    return days
-
-def save(dbinterface, data):
-    dbinterface.insert(*data)
-    dbinterface.commit()
+    return ['-'.join([str(year), str(month), str(day)]) for day in range(1, num_days+1)]
 
 
 ##
-#ROUTINE
+# Get resources
 
-dbi = db.factory.get_interface('publicacao')
+appconfig = inout.read_yaml('./appconfig')
+dbi = Dbinterface(appconfig['db']['connectionstring'])
 
-year = 2016
-month = 12
-days = get_dates(year, month)
+dates = get_dates(year, month)
+
+
+##
+# Scrap routine
 
 print('starting scraping routine')
 
-#scraping and saving routine
-for day in days:
-    print('start scraping {}'.format(day))
-    data = scraper.scrap(day)
+publicacoes = []
+for date in dates:
+    print('scraping {}'.format(date))
+    publicacoes += scraper.scrap(date)
 
-    print('inserting to database')
-    save(dbi, data)
 
-print('scraping routine finished')
+##
+# Persist results
+
+print('persisting on database')
+
+with dbi.opensession() as session:
+
+    for publicacao in publicacoes:
+        entry = Publicacao_Original(**publicacao)
+        session.add(entry)
+
+    session.commit()
