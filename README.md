@@ -6,6 +6,7 @@ Ferramenta para automatizar a busca e extração de artigos do [Diário Oficial 
    - [lxml](http://lxml.de/)
    - [PyYAML](http://pyyaml.org/wiki/PyYAML)
    - [SQLAlchemy](https://www.sqlalchemy.org/)
+ - Database SQL Server 2014
 
 ### Configuração
 O projeto depende de um arquivo `appconfig.yml`, na sua raiz, contendo algumas configurações locais. Crie uma cópia do arquivo `appconfig.yml.example` e coloque as configurações do seu ambiente.
