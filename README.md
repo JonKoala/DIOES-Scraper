@@ -1,4 +1,4 @@
-# DIARIOBOT-Scraper
+# diariobot-scraper
 Ferramenta para automatizar a busca e extração de artigos do [Diário Oficial do Espírito Santo](http://ioes.dio.es.gov.br/portal/visualizacoes/diario_oficial).
 
 ### Requisitos
