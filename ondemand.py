@@ -8,6 +8,7 @@ from db.models import Publicacao_Original
 
 import argparse
 import calendar
+import os
 from datetime import date, timedelta
 
 
@@ -34,7 +35,9 @@ def get_dates(year, month):
 # Get resources
 
 appconfig = inout.read_yaml('./appconfig')
-dbi = Dbinterface(appconfig['db']['connectionstring'])
+
+connectionstring = os.getenv('DIARIOBOT_DATABASE_CONNECTIONSTRING', appconfig['db']['connectionstring'])
+dbi = Dbinterface(connectionstring)
 
 dates = get_dates(year, month)
 

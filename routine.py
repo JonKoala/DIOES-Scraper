@@ -7,6 +7,7 @@ from db import Dbinterface
 from db.models import Publicacao, Publicacao_Original
 
 import calendar
+import os
 from datetime import date, timedelta
 from sqlalchemy import desc
 
@@ -23,7 +24,9 @@ def scrap(date):
 # Get resources
 
 appconfig = inout.read_yaml('./appconfig')
-dbi = Dbinterface(appconfig['db']['connectionstring'])
+
+connectionstring = os.getenv('DIARIOBOT_DATABASE_CONNECTIONSTRING', appconfig['db']['connectionstring'])
+dbi = Dbinterface(connectionstring)
 
 with dbi.opensession() as session:
     latest_update = session.query(Publicacao.data).order_by(desc(Publicacao.data)).first()[0]
