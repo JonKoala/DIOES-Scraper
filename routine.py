@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import scraper
-import inout
 from db import Dbinterface
 from db.models import Publicacao, Publicacao_Original
 
@@ -23,11 +22,7 @@ def scrap(date):
 ##
 # Get resources
 
-appconfig = inout.read_yaml('./appconfig')
-
-connectionstring = os.getenv('DIARIOBOT_DATABASE_CONNECTIONSTRING', appconfig['db']['connectionstring'])
-dbi = Dbinterface(connectionstring)
-
+dbi = Dbinterface(os.environ['DIARIOBOT_DATABASE_CONNECTIONSTRING'])
 with dbi.opensession() as session:
     latest_update = session.query(Publicacao.data).order_by(desc(Publicacao.data)).first()[0]
 

@@ -2,14 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import scraper
-import inout
 from db import Dbinterface
 from db.models import Publicacao_Original
 
 import argparse
 import calendar
 import os
-from datetime import date, timedelta
+
+
+##
+# Utils
+
+def get_dates(year, month):
+    num_days = calendar.monthrange(year, month)[1]
+    return ['-'.join([str(year), str(month), str(day)]) for day in range(1, num_days+1)]
 
 
 ##
@@ -24,30 +30,12 @@ month = parser.parse_args().month
 
 
 ##
-# Utils
-
-def get_dates(year, month):
-    num_days = calendar.monthrange(year, month)[1]
-    return ['-'.join([str(year), str(month), str(day)]) for day in range(1, num_days+1)]
-
-
-##
-# Get resources
-
-appconfig = inout.read_yaml('./appconfig')
-
-connectionstring = os.getenv('DIARIOBOT_DATABASE_CONNECTIONSTRING', appconfig['db']['connectionstring'])
-dbi = Dbinterface(connectionstring)
-
-dates = get_dates(year, month)
-
-
-##
 # Scrap routine
 
 print('starting scraping routine')
 
 publicacoes = []
+dates = get_dates(year, month)
 for date in dates:
     print('scraping {}'.format(date))
     publicacoes += scraper.scrap(date)
@@ -58,6 +46,7 @@ for date in dates:
 
 print('persisting on database')
 
+dbi = Dbinterface(os.environ['DIARIOBOT_DATABASE_CONNECTIONSTRING'])
 with dbi.opensession() as session:
 
     for publicacao in publicacoes:

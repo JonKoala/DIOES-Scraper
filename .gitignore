@@ -1,2 +1,3 @@
 __pycache__/
-appconfig.yml
+docker-compose*.yml
+.env
