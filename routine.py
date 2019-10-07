@@ -24,7 +24,7 @@ def scrap(date):
 
 dbi = Dbinterface(os.environ['DIARIOBOT_DATABASE_CONNECTIONSTRING'])
 with dbi.opensession() as session:
-    latest_update = session.query(Publicacao.data).order_by(desc(Publicacao.data)).first()[0]
+    latest_update = session.query(Publicacao.data).filter(Publicacao.fonte == 'ioes').order_by(desc(Publicacao.data)).first()[0]
 
 #getting all dates between the latest update and today
 delta = (date.today() - latest_update).days

@@ -118,8 +118,9 @@ def scrap(*args):
         publicacoes_data = [{**edicao, **publicacao_data} for publicacao_data in publicacoes_data]
         results += publicacoes_data
 
-    #getting the body of each publicação
+    #getting the body & source of each publicação
     for result in results:
         result['corpo'] = get_publicacao_body(result['identificador'])
+        result['fonte'] = 'ioes'
 
     return results

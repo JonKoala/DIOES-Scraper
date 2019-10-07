@@ -21,8 +21,9 @@ class Publicacao_Original(Base):
     materia = Column(String)
     identificador = Column(Integer)
     corpo = Column(String)
+    fonte = Column(String)
 
 
     def __repr__(self):
-        return '<Publicacao_Original(id={}, edicao={}, numero={}, data={}, categoria={}, orgao={}, suborgao={}, tipo={}, materia={}, identificador={}, corpo={})>'.format(
-            self.id, self.edicao, self.numero, self.data, self.categoria, self.orgao, self.suborgao, self.tipo, self.materia, self.identificador, self.corpo)
+        return '<Publicacao_Original(id={}, edicao={}, numero={}, data={}, categoria={}, orgao={}, suborgao={}, tipo={}, materia={}, identificador={}, corpo={}, fonte={})>'.format(
+            self.id, self.edicao, self.numero, self.data, self.categoria, self.orgao, self.suborgao, self.tipo, self.materia, self.identificador, self.corpo, self.fonte)
