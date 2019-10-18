@@ -2,6 +2,8 @@ FROM python:3.7
 
 WORKDIR /usr/src/app
 
+RUN pip install --no-cache-dir --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org --upgrade pip
+
 # install database connection dependencies
 RUN apt-get update
 RUN apt-get install -y unixodbc-dev apt-transport-https

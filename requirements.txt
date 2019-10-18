@@ -1,3 +1,5 @@
+aiohttp==3.*
+beautifulsoup4
 lxml==4.*
 pyodbc==4.*
 SQLAlchemy>=1.3
