@@ -1,126 +1,94 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import time
-import urllib.request
+import asyncio
+import functools
 import json
-from lxml import etree
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+
+import scraper_web as webscraper
 
 
 ##
 #CONSTANTS
 
-URL_GET_EDICOES = 'http://ioes.dio.es.gov.br/apifront/portal/edicoes/edicoes_from_data/'
-URL_GET_PUBLICACOES_SUMMARY = 'http://ioes.dio.es.gov.br/portal/visualizacoes/view_html_diario/'
-URL_GET_PUBLICACAO = 'http://ioes.dio.es.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/'
+URL_GET_EDICOES = 'http://ioes.dio.es.gov.br/apifront/portal/edicoes/edicoes_from_data/{date}'
+URL_GET_PUBLICACOES_SUMMARY = 'http://ioes.dio.es.gov.br/portal/visualizacoes/view_html_diario/{id}'
+URL_GET_PUBLICACAO = 'http://ioes.dio.es.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/{identificador}'
 
 
 ##
-#UTILS
+# PUBLIC
 
-def _request(url):
-    return urllib.request.urlopen(url).read()
+def scrap(date):
 
-def _extract_node_resources(node):
-    text = node.xpath('./span/text()')[0]
-    text = _fix_encoding(text)
-    subnodes = node.xpath('./ul/li')
-    return text, subnodes
+    edicoes = get_edicoes(date)
+    edicoes_with_summary_content = [{ **edicao, 'publicacoes': _get_summary_content(edicao['id']) } for edicao in edicoes]
+    edicoes_with_publicacoes = [{ **edicao, 'publicacoes': _get_publicacoes(edicao['publicacoes']) } for edicao in edicoes_with_summary_content]
 
-def _extract_text(html):
-    return ''.join(html.itertext())
-
-#TEXT
-
-def _fix_encoding(text):
-    text = str(text)
-    return text.encode('latin-1').decode('utf-8')
-
-def _clean_text(text):
-    text = text.replace('\n', ' ').replace('\r', ' ')
-    return ' '.join(text.split())
-
-
-##
-#PUBLIC
+    return edicoes_with_publicacoes
 
 def get_edicoes(date):
 
-    response = _request(URL_GET_EDICOES + date)
+    response = webscraper.request(URL_GET_EDICOES.format(date=date))
+    parsed_response = json.loads(response)
 
-    #extracting data from responses
-    parsed = json.loads(response)
-    edicoes = [diario for diario in parsed.get('itens')]
+    return [{ 'id': item['id'], 'numero': item['numero'], 'date': date } for item in parsed_response['itens']]
 
-    #formatting and returning data
-    edicoes = [dict(edicao=str(edicao.get('id')), numero=str(edicao.get('numero')), data=edicao.get('data')) for edicao in edicoes]
-    return edicoes
+def _get_summary_content(id):
 
-def get_publicacoes_data(edicao):
+    response = webscraper.request(URL_GET_PUBLICACOES_SUMMARY.format(id=id))
 
-    response = _request(URL_GET_PUBLICACOES_SUMMARY + edicao)
+    # convert xml response into an element tree
+    embedded_response = '<body>{}</body>'.format(response)
+    wellformed_response = str(BeautifulSoup(embedded_response, 'html.parser'))
+    tree = ET.fromstring(wellformed_response)
 
-    #extracting brute data from response
-    parsed = etree.HTML(response)
-    content = parsed.xpath('//*[@id=\'tree\']')[0]
+    # return publicacoes extracted from the tree
+    publicacoes_details = _get_publicacoes_details(tree)
+    clean_publicacoes_details = [{ **entry, 'summary_stack': entry['summary_stack'][1:] } for entry in publicacoes_details]
+    return clean_publicacoes_details
 
-    #extracting data from html
-    publicacoes = []
-    categorias = content.xpath('./li')
+def _get_publicacoes_details(node):
 
-    for categoria in categorias:
-        categoria_name, orgaos = _extract_node_resources(categoria)
+    # check if this node has children
+    children = node.findall('./ul/li')
+    if len(children) > 0:
 
-        for orgao in orgaos:
-            orgao_name, suborgaos = _extract_node_resources(orgao)
+        # go deeper until i get to the leaf nodes
+        children_leaves = [_get_publicacoes_details(child) for child in children]
+        leaves = functools.reduce(lambda x, y: x + y, children_leaves)
 
-            for suborgao in suborgaos:
-                suborgao_name, tipos = _extract_node_resources(suborgao)
+        # update leaves' summary stack with this node's text
+        node_text = node.findtext('./span')
+        updated_leaves = [{ **leaf, 'summary_stack': [node_text] + leaf['summary_stack'] } for leaf in leaves]
+        return updated_leaves
 
-                for tipo in tipos:
-                    tipo_name, materias = _extract_node_resources(tipo)
+    # leaf node, return own content
+    leaf = node.find('./span/a')
+    leaf_content = { 'title': leaf.text.strip(), 'identificador': leaf.get('identificador'), 'summary_stack': [] }
+    return [leaf_content]
 
-                    for materia in materias:
-                        try:
-                            materia_name = materia.xpath('./span/a/text()')[0]
-                            materia_name = _fix_encoding(materia_name)
-                            identificador = materia.xpath('./span/a/@identificador')[0]
+def _get_publicacoes(publicacoes):
 
-                            publicacoes.append(dict(categoria=categoria_name, orgao=orgao_name, suborgao=suborgao_name, tipo=tipo_name, materia=materia_name, identificador=identificador))
-                        except:
-                            continue
+    publicacoes_urls = [URL_GET_PUBLICACAO.format(identificador=publicacao['identificador']) for publicacao in publicacoes]
+    publicacoes_content = asyncio.run(_scrap_publicacoes(publicacoes_urls))
+
+    publicacoes = [{ **publicacao, 'body': body } for publicacao, body in zip(publicacoes, publicacoes_content) ]
 
     return publicacoes
 
-def get_publicacao_body(identificador):
+async def _scrap_publicacoes(urls):
 
-    response = _request(URL_GET_PUBLICACAO + identificador)
-    if not response.strip():
-        return ''
+    semaphore = asyncio.Semaphore(20)
+    tasks = [_scrap_publicacao(url, semaphore) for url in urls]
 
-    content = etree.HTML(response)
-    lines = content.xpath('//p')
+    return await asyncio.gather(*tasks)
 
-    lines = [_clean_text(_extract_text(line)) for line in lines]
-    text = '\n'.join(lines)
-    return text
+async def _scrap_publicacao(url, semaphore):
 
-def scrap(*args):
-    dates = args if len(args) > 0 else [time.strftime('%Y-%m-%d')]
+    async with semaphore:
+        response = await webscraper.async_request(url)
 
-    edicoes = [edicoes for date in dates for edicoes in get_edicoes(date)]
-
-    results = []
-
-    #getting data about publicações
-    for edicao in edicoes:
-        publicacoes_data = get_publicacoes_data(edicao['edicao'])
-        publicacoes_data = [{**edicao, **publicacao_data} for publicacao_data in publicacoes_data]
-        results += publicacoes_data
-
-    #getting the body & source of each publicação
-    for result in results:
-        result['corpo'] = get_publicacao_body(result['identificador'])
-        result['fonte'] = 'ioes'
-
-    return results
+        # extract text content from page
+        soup = BeautifulSoup(response, 'html.parser')
+        return soup.body.get_text()

@@ -1,56 +1,46 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+import os
+from datetime import datetime
 
 import scraper
 from db import Dbinterface
-from db.models import Publicacao, Publicacao_Original
-
-import calendar
-import os
-from datetime import date, timedelta
-from sqlalchemy import desc
+from db.models import Publicacao_Original
 
 
-##
-# Utils
+def routine(*dates):
 
-def scrap(date):
-    date_arg = date.strftime('%Y-%m-%d')
-    return scraper.scrap(date_arg)
+    results = _scrap_dates(dates)
+    if len(results) == 0:
+        return
 
+    with Dbinterface(os.environ['DIARIOBOT_DATABASE_CONNECTIONSTRING']).opensession() as session:
+        for publicacao in _get_publicacoes(results):
+            entry = Publicacao_Original(**publicacao)
+            session.add(entry)
 
-##
-# Get resources
+        session.commit()
 
-dbi = Dbinterface(os.environ['DIARIOBOT_DATABASE_CONNECTIONSTRING'])
-with dbi.opensession() as session:
-    latest_update = session.query(Publicacao.data).filter(Publicacao.fonte == 'ioes').order_by(desc(Publicacao.data)).first()[0]
+def _scrap_dates(dates):
+    return scraper.scrap(dates[0]) + _scrap_dates(dates[1:]) if len(dates) > 0 else []
 
-#getting all dates between the latest update and today
-delta = (date.today() - latest_update).days
-dates = [latest_update + timedelta(days=i) for i in range(1, delta + 1)]
+def _get_publicacoes(results):
 
+    for result in results:
+        edicao = { 'edicao': result['id'], 'numero': result['numero'], 'data': datetime.strptime(result['date'], '%Y-%m-%d').strftime('%d/%m/%Y') }
 
-##
-# Scrap routine
+        for item in result['publicacoes']:
+            summary = _get_summary(item['summary_stack'])
+            publicacao = { 'materia': item['title'], 'identificador': item['identificador'], 'corpo': item['body'] }
 
-print('starting scraping routine')
+            yield { **edicao, **summary, **publicacao, 'fonte': 'ioes' }
 
-publicacoes = []
-for date in dates:
-    print('scraping {}'.format(date))
-    publicacoes += scrap(date)
+def _get_summary(summary_stack):
 
+    if len(summary_stack) < 3:
+        raise Exception('unsupported summary: {}'.format(summary_stack))
 
-##
-# Persist results
+    categoria, orgao = summary_stack[:2]
+    tipo, = summary_stack[-1:]
+    suborgao = summary_stack[2] if len(summary_stack) > 3 else ''
 
-print('persisting on database')
-
-with dbi.opensession() as session:
-
-    for publicacao in publicacoes:
-        entry = Publicacao_Original(**publicacao)
-        session.add(entry)
-
-    session.commit()
+    return { 'categoria': categoria, 'orgao': orgao, 'suborgao': suborgao, 'tipo': tipo }
