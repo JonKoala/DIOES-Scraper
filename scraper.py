@@ -89,6 +89,7 @@ async def _scrap_publicacao(url, semaphore):
     async with semaphore:
         response = await webscraper.async_request(url)
 
-        # extract text content from page
-        soup = BeautifulSoup(response, 'html.parser')
-        return soup.body.get_text()
+        # if page content exists and is html, extract text from it
+        if response:
+            soup = BeautifulSoup(response, 'html.parser')
+            return soup.body.get_text()

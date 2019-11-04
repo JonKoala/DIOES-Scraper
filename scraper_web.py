@@ -23,4 +23,4 @@ async def async_request(url):
     async with aiohttp.ClientSession() as session:
         async with session.get(url, ssl=UNVERIFIED_REQUEST_CONTEXT) as response:
             content = await response.read()
-            return content.decode(response.charset)
+            return content.decode(response.charset) if response.charset else None
