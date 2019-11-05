@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir --trusted-host pypi.python.org --trusted-host pyp
 
 COPY . .
 
-CMD [ "python", "routine.py" ]
+CMD [ "python", "routine_daily.py" ]
