@@ -2,7 +2,6 @@
 import asyncio
 import functools
 import json
-import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 import scraper_web as webscraper
@@ -36,36 +35,33 @@ def get_edicoes(date):
 
 def _get_summary_content(id):
 
+    # parse summary content
     response = webscraper.request(URL_GET_PUBLICACOES_SUMMARY.format(id=id))
-
-    # convert xml response into an element tree
-    embedded_response = '<body>{}</body>'.format(response)
-    wellformed_response = str(BeautifulSoup(embedded_response, 'html.parser'))
-    tree = ET.fromstring(wellformed_response)
+    tree = BeautifulSoup(response, 'html.parser')
 
     # return publicacoes extracted from the tree
     publicacoes_details = _get_publicacoes_details(tree)
-    clean_publicacoes_details = [{ **entry, 'summary_stack': entry['summary_stack'][1:] } for entry in publicacoes_details]
-    return clean_publicacoes_details
+    return publicacoes_details
 
 def _get_publicacoes_details(node):
 
     # check if this node has children
-    children = node.findall('./ul/li')
-    if len(children) > 0:
+    if node.ul:
+        children = node.ul.find_all('li', recursive=False)
 
         # go deeper until i get to the leaf nodes
         children_leaves = [_get_publicacoes_details(child) for child in children]
         leaves = functools.reduce(lambda x, y: x + y, children_leaves)
 
-        # update leaves' summary stack with this node's text
-        node_text = node.findtext('./span')
-        updated_leaves = [{ **leaf, 'summary_stack': [node_text] + leaf['summary_stack'] } for leaf in leaves]
+        # update leaves' summary stack with this node's text (if any)
+        node_text = [node.span.text] if node.find('span', recursive=False) else []
+        updated_leaves = [{ **leaf, 'summary_stack': node_text + leaf['summary_stack'] } for leaf in leaves]
+
         return updated_leaves
 
     # leaf node, return own content
-    leaf = node.find('./span/a')
-    leaf_content = { 'title': leaf.text.strip(), 'identificador': leaf.get('identificador'), 'summary_stack': [] }
+    leaf = node.span.a
+    leaf_content = { 'title': leaf.text.strip(), 'identificador': leaf['identificador'], 'summary_stack': [] }
     return [leaf_content]
 
 def _get_publicacoes(publicacoes):
