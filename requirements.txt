@@ -1,4 +1,4 @@
 aiohttp==3.*
 beautifulsoup4
 pyodbc==4.*
-SQLAlchemy>=1.3
+SQLAlchemy==1.*
