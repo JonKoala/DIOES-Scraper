@@ -51,7 +51,7 @@ def _get_publicacoes_details(node):
 
         # go deeper until i get to the leaf nodes
         children_leaves = [_get_publicacoes_details(child) for child in children]
-        leaves = functools.reduce(lambda x, y: x + y, children_leaves)
+        leaves = functools.reduce(lambda x, y: x + y, children_leaves if children_leaves else [[]])
 
         # update leaves' summary stack with this node's text (if any)
         node_text = [node.span.text] if node.find('span', recursive=False) else []
